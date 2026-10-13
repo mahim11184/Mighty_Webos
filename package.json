@@ -1,0 +1,14 @@
+{
+  "name": "web-os-mobile",
+  "version": "1.0.0",
+  "description": "Lightweight Web OS with ZIP Installer & iOS UI",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Building Web Assets...'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.7.0",
+    "@capacitor/cli": "^5.7.0",
+    "@capacitor/core": "^5.7.0"
+  }
+}
