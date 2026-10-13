@@ -3,212 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>iOS Web OS with Multi-Apps Folder</title>
+  <title>iOS Web OS - Final Edition</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop') center/cover no-repeat; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-    
-    /* iOS Status Bar */
-    .status-bar { height: 44px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; color: white; font-weight: 600; font-size: 14px; }
-    .dynamic-island { width: 120px; height: 30px; background: #000; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; }
-
-    /* App Grid */
-    .app-grid { flex: 1; padding: 20px; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: max-content; gap: 20px; overflow-y: auto; }
-    .app-icon { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-align: center; }
-    .app-icon img, .app-icon .icon-box { width: 62px; height: 62px; border-radius: 16px; background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
-    .app-icon span { color: white; font-size: 12px; margin-top: 6px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-
-    /* Glass Dock */
-    .dock { height: 85px; margin: 15px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(25px); border-radius: 30px; display: flex; justify-content: space-around; align-items: center; padding: 0 10px; border: 1px solid rgba(255, 255, 255, 0.3); }
-
-    /* App Window */
-    .app-window { position: fixed; inset: 0; background: #fff; z-index: 100; display: none; flex-direction: column; }
-    .app-window.active { display: flex; }
-    .app-header { height: 40px; background: #f1f1f1; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 1px solid #ccc; }
-    .close-btn { background: #ff5f56; border: none; width: 14px; height: 14px; border-radius: 50%; cursor: pointer; }
-    iframe { flex: 1; border: none; width: 100%; height: 100%; }
-
-    input[type="file"] { display: none; }
-  </style>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="initOS()">
 
-  <!-- iOS Status Bar -->
-  <div class="status-bar">
-    <span id="clock">12:00</span>
-    <div class="dynamic-island">Web OS</div>
-    <span>100% 🔋</span>
+  <!-- Loading / Splash Screen -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <p id="loadingText" style="font-weight: 600; font-size: 15px;">Starting Web OS...</p>
   </div>
 
-  <!-- App Grid -->
+  <!-- Pullable Notification & Control Center Panel -->
+  <div class="notification-panel" id="notificationPanel" onclick="toggleNotificationPanel()">
+    <div class="notif-header">Control Center & Notifications</div>
+    <div class="quick-toggles">
+      <div class="toggle-btn active" onclick="event.stopPropagation()">📶 <span>WiFi</span></div>
+      <div class="toggle-btn active" onclick="event.stopPropagation()">🔵 <span>Bluetooth</span></div>
+      <div class="toggle-btn" onclick="event.stopPropagation()">🌙 <span>DND</span></div>
+      <div class="toggle-btn active" onclick="event.stopPropagation()">🔆 <span>Auto</span></div>
+    </div>
+    <div class="notif-card"><strong>System Security</strong><br>Permanent storage layer active.</div>
+    <div class="pull-handle"></div>
+  </div>
+
+  <!-- iOS Status Bar -->
+  <div class="status-bar" onclick="toggleNotificationPanel()">
+    <span id="clock">12:00</span>
+    <span>Web OS 🌙 100% 🔋</span>
+  </div>
+
+  <!-- App Grid (Desktop) -->
   <div class="app-grid" id="appGrid">
     <div class="app-icon" onclick="document.getElementById('zipInput').click()">
-      <div class="icon-box">📦</div>
+      <img src="assets/icons/install.png" alt="Install">
       <span>Install App</span>
-    </div>
-    <div class="app-icon" onclick="exportBackup()">
-      <div class="icon-box">💾</div>
-      <span>Backup</span>
-    </div>
-    <div class="app-icon" onclick="document.getElementById('restoreInput').click()">
-      <div class="icon-box">🔄</div>
-      <span>Restore</span>
     </div>
   </div>
 
   <!-- iOS Dock -->
   <div class="dock">
-    <div class="app-icon"><div class="icon-box">⚙️</div></div>
-    <div class="app-icon"><div class="icon-box">🌐</div></div>
+    <div class="app-icon" onclick="openSettings()">
+      <img src="assets/icons/settings.png" alt="Settings">
+      <span style="color:white; font-size:11px;">Settings</span>
+    </div>
   </div>
 
-  <!-- App Window -->
+  <!-- App Window Modal -->
   <div class="app-window" id="appWindow">
     <div class="app-header">
       <button class="close-btn" onclick="closeApp()"></button>
-      <span id="appTitle">App Title</span>
+      <span id="appTitle" style="font-weight:600; font-size:14px;">App Title</span>
       <div style="width: 14px;"></div>
     </div>
-    <iframe id="appIframe"></iframe>
+    <div id="windowBody" style="flex:1; display:flex; flex-direction:column;">
+      <iframe id="appIframe"></iframe>
+    </div>
   </div>
 
-  <input type="file" id="zipInput" accept=".zip" onchange="installZipApp(event)">
-  <input type="file" id="restoreInput" accept=".json" onchange="importBackup(event)">
+  <!-- Hidden File Inputs -->
+  <input type="file" id="zipInput" accept=".zip" onchange="handleZipUpload(event)">
+  <input type="file" id="restoreInput" accept=".json" onchange="importBackup(event)" style="display:none;">
 
-  <script>
-    setInterval(() => {
-      const now = new Date();
-      document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }, 1000);
-
-    let installedApps = JSON.parse(localStorage.getItem('webos_apps') || '{}');
-
-    // Initialize OS and load all inbuilt apps from apps/ folder
-    async function initOS() {
-      renderApps();
-      
-      if (!localStorage.getItem('multi_apps_loaded')) {
-        // এখানে আপনার ফোল্ডারে থাকা জিপ ফাইলগুলোর লিস্ট দিয়ে দেবেন
-        const defaultAppFiles = [
-          'apps/flappynyan.zip',
-          'apps/browser.zip'
-        ];
-
-        for (let zipUrl of defaultAppFiles) {
-          try {
-            const response = await fetch(zipUrl);
-            if (response.ok) {
-              const blob = await response.blob();
-              const fileName = zipUrl.split('/').pop();
-              const file = new File([blob], fileName, { type: "application/zip" });
-              await processAndInstallZip(file);
-            }
-          } catch (err) {
-            console.log(`Failed to load inbuilt app: ${zipUrl}`, err);
-          }
-        }
-
-        localStorage.setItem('multi_apps_loaded', 'true');
-        console.log("All inbuilt apps loaded!");
-      }
-    }
-
-    function renderApps() {
-      const grid = document.getElementById('appGrid');
-      grid.innerHTML = `
-        <div class="app-icon" onclick="document.getElementById('zipInput').click()"><div class="icon-box">📦</div><span>Install App</span></div>
-        <div class="app-icon" onclick="exportBackup()"><div class="icon-box">💾</div><span>Backup</span></div>
-        <div class="app-icon" onclick="document.getElementById('restoreInput').click()"><div class="icon-box">🔄</div><span>Restore</span></div>
-      `;
-
-      Object.keys(installedApps).forEach(id => {
-        const app = installedApps[id];
-        const iconHtml = app.icon ? `<img src="${app.icon}">` : `<div class="icon-box">🎮</div>`;
-        const div = document.createElement('div');
-        div.className = 'app-icon';
-        div.innerHTML = `${iconHtml}<span>${app.name}</span>`;
-        div.onclick = () => launchApp(id);
-        grid.appendChild(div);
-      });
-    }
-
-    async function processAndInstallZip(file) {
-      const zip = await JSZip.loadAsync(file);
-      let manifest = { id: 'app_' + Date.now() + Math.random(), name: file.name.replace('.zip', ''), entry: 'index.html' };
-
-      if (zip.file("app.json")) {
-        const manifestText = await zip.file("app.json").async("string");
-        manifest = { ...manifest, ...JSON.parse(manifestText) };
-      }
-
-      const files = {};
-      for (let relativePath in zip.files) {
-        if (!zip.files[relativePath].dir) {
-          const content = await zip.files[relativePath].async("blob");
-          files[relativePath] = URL.createObjectURL(content);
-        }
-      }
-
-      installedApps[manifest.id] = { ...manifest, files };
-      localStorage.setItem('webos_apps', JSON.stringify(installedApps));
-      renderApps();
-    }
-
-    async function installZipApp(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      await processAndInstallZip(file);
-      alert('App Installed Successfully!');
-    }
-
-    function launchApp(id) {
-      const app = installedApps[id];
-      if (!app) return;
-
-      const entryFile = app.files[app.entry || 'index.html'];
-      if (!entryFile) {
-        alert('Entry file (index.html) not found in ZIP!');
-        return;
-      }
-
-      document.getElementById('appTitle').innerText = app.name;
-      document.getElementById('appIframe').src = entryFile;
-      document.getElementById('appWindow').classList.add('active');
-    }
-
-    function closeApp() {
-      document.getElementById('appWindow').classList.remove('active');
-      document.getElementById('appIframe').src = '';
-    }
-
-    function exportBackup() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(installedApps));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `webos_backup_${Date.now()}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-
-    function importBackup(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        try {
-          installedApps = JSON.parse(event.target.result);
-          localStorage.setItem('webos_apps', JSON.stringify(installedApps));
-          renderApps();
-          alert('System Restored Successfully!');
-        } catch (err) {
-          alert('Invalid Backup File!');
-        }
-      };
-      reader.readAsText(file);
-    }
-  </script>
+  <script src="js/os.js"></script>
 </body>
-      </html>
+    </html>
