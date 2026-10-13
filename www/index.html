@@ -62,10 +62,17 @@
     </div>
   </div>
 
+  <!-- 3-Button Navigation Bar (Bottom) -->
+  <div class="nav-bar">
+    <button class="nav-btn" onclick="navBack()" title="Back">◀</button>
+    <button class="nav-btn" onclick="navHome()" title="Home">◯</button>
+    <button class="nav-btn" onclick="navRecents()" title="Recents">▢</button>
+  </div>
+
   <!-- Hidden File Inputs -->
   <input type="file" id="zipInput" accept=".zip" onchange="handleZipUpload(event)">
   <input type="file" id="restoreInput" accept=".json" onchange="importBackup(event)" style="display:none;">
 
   <script src="js/os.js"></script>
 </body>
-    </html>
+</html>
