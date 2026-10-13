@@ -1,0 +1,6 @@
+{
+  "appId": "com.webos.mobile",
+  "appName": "WebOS Mobile",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
