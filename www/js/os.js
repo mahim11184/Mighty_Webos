@@ -25,7 +25,7 @@ async function initOS() {
   installedApps = {};
 
   // 1. Load Inbuilt Apps from apps/ folder
-  const inbuiltAppFolders = ['flappynyan']; // আপনার apps ফোল্ডারের ফোল্ডারগুলোর নাম এখানে থাকবে
+  const inbuiltAppFolders = ['flappynyan']; 
   for (let folderName of inbuiltAppFolders) {
     try {
       const res = await fetch(`apps/${folderName}/app.json`);
@@ -252,6 +252,33 @@ function closeApp() {
   document.getElementById('windowBody').innerHTML = `<iframe id="appIframe"></iframe>`;
 }
 
+// --- 3-Button Navigation Bar Actions ---
+function navBack() {
+  const appWindow = document.getElementById('appWindow');
+  if (appWindow.classList.contains('active')) {
+    try {
+      const iframe = document.getElementById('appIframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.history.back();
+      } else {
+        closeApp();
+      }
+    } catch (e) {
+      closeApp();
+    }
+  }
+}
+
+function navHome() {
+  closeApp();
+  document.getElementById('notificationPanel').classList.remove('active');
+}
+
+function navRecents() {
+  // Recents button opens Settings as a task management overview
+  openSettings();
+}
+
 // Helpers for Storage & Backup
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -302,4 +329,4 @@ function importBackup(e) {
     }
   };
   reader.readAsText(file);
-          }
+    }
