@@ -1,48 +1,79 @@
-name: Build Android APK
+name: Build Firefox OS for QEMU
 
 on:
   push:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
 
 jobs:
-  build:
+  build-b2g:
     runs-on: ubuntu-latest
+    
+    # Use an older Ubuntu container to satisfy legacy Python 2 & GCC dependencies
+    container:
+      image: ubuntu:14.04
 
     steps:
-      - name: Checkout Repository
+      - name: Install System Dependencies
+        run: |
+          apt-get update && apt-get install -y \
+            git-core gnupg flex bison gperf libsdl1.2-dev \
+            libesd0-dev libwxgtk2.8-dev squashfs-tools build-essential \
+            zip curl libncurses5-dev zlib1g-dev openjdk-7-jdk \
+            g++-multilib lib32ncurses5-dev x11proto-core-dev \
+            libx11-dev lib32z1-dev libgl1-mesa-dev python-markdown \
+            libxml2-utils xsltproc unzip python ccache cccl ccache
+
+      - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set up Java JDK 17
-        uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          submodules: recursive
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install Dependencies
+      - name: Configure Git for Repo Tool
         run: |
-          npm install
+          git config --global user.email "b2g-bot@example.com"
+          git config --global user.name "B2G CI Bot"
+          git config --global color.ui false
 
-      - name: Initialize Capacitor Android Platform
+      - name: Set Up Google Repo Tool
         run: |
-          npx cap add android
-          npx cap copy android
+          mkdir -p ~/bin
+          curl https://googleapis.com > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Build Android APK
+      - name: Initialize and Sync B2G Repository
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          # Use path if you are mapping a specific manifest, or run make sync if using B2G root tree
+          # If your repository is the actual B2G root:
+          ./config.sh qemu
+          make sync
 
-      - name: Upload Debug APK Artifact
+      - name: Build Gonk and OS Images
+        run: |
+          # Set up build environment variables
+          export YUNCHROME_MALLOC=1
+          export FORCE_BUILD=1
+          
+          # Execute the compilation
+          make -j$(nproc)
+
+      - name: Package QEMU Images
+        if: success()
+        run: |
+          mkdir -p qemu-build-output
+          # Copy generated emulator images from the build out directory
+          cp out/target/product/generic/*.img qemu-build-output/ || true
+          cp out/target/product/generic/kernel-qemu qemu-build-output/ || true
+          
+          # Zip the outputs
+          zip -r b2g-qemu-images.zip qemu-build-output/
+
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: WebOS-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: firefox-os-qemu-images
+          path: b2g-qemu-images.zip
+          retention-days: 7
